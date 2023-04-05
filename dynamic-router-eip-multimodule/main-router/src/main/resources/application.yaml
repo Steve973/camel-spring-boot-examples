@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: main-router
+server:
+  servlet:
+    context-path: main-router/
+camel:
+  component:
+    dynamic-router:
+      enabled: true
+      lazy-start-producer: true
+      bridge-error-handler: true
+main-router:
+  routing-channel: "numbers"
+  subscribe-uri: "dynamic-router:control"
+  message-entrypoint: "jms:command"
+  recipient-mode: "allMatch"
