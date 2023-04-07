@@ -82,7 +82,10 @@
 		<module>splitter-eip</module>
 		<module>widget-gadget</module>
 		<module>azure</module>
-    </modules>
+    <module>dynamic-router-eip-multimodule/even-numbers-service</module>
+    <module>dynamic-router-eip-multimodule/threes-numbers-service</module>
+    <module>dynamic-router-eip-multimodule/fours-numbers-service</module>
+  </modules>
 
 	<properties>
 		<camel-version>4.0.0-SNAPSHOT</camel-version>

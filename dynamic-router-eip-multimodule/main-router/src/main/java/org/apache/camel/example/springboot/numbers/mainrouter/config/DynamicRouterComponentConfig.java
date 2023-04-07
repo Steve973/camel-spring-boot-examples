@@ -58,4 +58,19 @@ public class DynamicRouterComponentConfig {
             }
         };
     }
+
+    /**
+     * Creates a simple route to allow dynamic routing participants to
+     * subscribe or unsubscribe.
+     */
+    @Bean
+    RouteBuilder subscriptionRouter() {
+        return new RouteBuilder() {
+            @Override
+            public void configure() {
+                from(mainRouterConfig.subscribeUri())
+                        .to("dynamic-router:control");
+            }
+        };
+    }
 }

@@ -27,7 +27,7 @@ readme's instructions.
 === Examples
 
 // examples: START
-Number of Examples: 48 (0 deprecated)
+Number of Examples: 49 (0 deprecated)
 
 [width="100%",cols="4,2,4",options="header"]
 |===
@@ -77,6 +77,9 @@ Number of Examples: 48 (0 deprecated)
 | link:arangodb/README.adoc[Arangodb] (arangodb) | Database | An example showing the Camel ArangoDb component with Spring Boot
 
 | link:dynamic-router-eip/README.adoc[Dynamic Router Eip] (dynamic-router-eip) | EIP | An example on how to use the Dynamic Router EIP component in Spring Boot
+
+| link:dynamic-router-eip-multimodule/readme.md[Dynamic Router Eip Multimodule] (dynamic-router-eip-multimodule) | EIP | An example on how to use the Dynamic Router EIP component in Spring Boot with multiple modules
+  
 
 | link:load-balancer-eip/README.adoc[Load Balancer Eip] (load-balancer-eip) | EIP | An example showing Load Balancer EIP with Camel and Spring Boot
 
