@@ -31,4 +31,12 @@
 
   <name>Camel SB Examples :: Dynamic Router EIP Multimodule :: Sevens Numbers Service</name>
 
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.camel.springboot.example</groupId>
+      <artifactId>numbers-data-model</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
 </project>

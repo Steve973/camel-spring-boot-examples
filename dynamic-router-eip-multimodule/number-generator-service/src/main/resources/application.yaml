@@ -36,6 +36,6 @@ camel:
 number-generator:
   routing-channel: "numbers"
   subscribe-uri: "pulsar:persistent://public/default/control"
-  generate-numbers-consume-uri: "pulsar:persistent://public/default/numbers/generate"
+  consume-uri: "pulsar:persistent://public/default/numbers/generate"
   command-uri: "pulsar:persistent://public/default/numbers/command"
   subscription-priority: 10

@@ -33,6 +33,7 @@
   <description>Dynamic Router EIP component example in Spring Boot with multiple modules</description>
 
   <modules>
+    <module>numbers-data-model</module>
     <module>main-router</module>
     <module>number-generator-service</module>
     <module>all-numbers-service</module>

@@ -85,6 +85,7 @@
     <module>dynamic-router-eip-multimodule/even-numbers-service</module>
     <module>dynamic-router-eip-multimodule/threes-numbers-service</module>
     <module>dynamic-router-eip-multimodule/fours-numbers-service</module>
+    <module>dynamic-router-eip-multimodule/numbers-data-model</module>
   </modules>
 
 	<properties>

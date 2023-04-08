@@ -20,6 +20,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
   <parent>
     <groupId>org.apache.camel.springboot.example</groupId>
     <artifactId>camel-example-spring-boot-dynamic-router-eip-multimodule</artifactId>
@@ -30,5 +31,13 @@
   <packaging>jar</packaging>
 
   <name>Camel SB Examples :: Dynamic Router EIP Multimodule :: All Numbers Service</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.camel.springboot.example</groupId>
+      <artifactId>numbers-data-model</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
 
 </project>
