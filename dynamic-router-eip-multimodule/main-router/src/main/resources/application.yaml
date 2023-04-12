@@ -20,6 +20,7 @@ spring:
 server:
   servlet:
     context-path: "/main-router"
+  port: 8888
 management:
   endpoints:
     enabled-by-default: false
@@ -30,15 +31,26 @@ management:
     health:
       enabled: true
 camel:
+  springboot:
+    name: CamelSpringBootDynamicRouterExampleMainRouter
+    jmx-enabled: false
+    shutdown-timeout: 30
   component:
     pulsar:
-      service-url: "http://broker:8080"
+      service-url: "http://localhost:8081"
     dynamic-router:
       enabled: true
       lazy-start-producer: true
       bridge-error-handler: true
 main-router:
-  routing-channel: "numbers"
-  subscribe-uri: "pulsar:persistent://public/default/control"
-  message-entrypoint: "pulsar:persistent://public/default/numbers/command"
-  recipient-mode: "allMatch"
+  dynamic-router-component:
+    routing-channel: "numbers"
+    control-entrypoint: "pulsar:persistent://public/default/control"
+    command-entrypoint: "pulsar:persistent://public/default/numbers/command"
+    recipient-mode: "allMatch"
+  stats-subscriber:
+    consume-uri: "pulsar:persistent://public/default/numbers/stats"
+    subscription-priority: 7
+    predicate: "{request.headers.command == 'stats'}"
+    expression-language: "spel"
+

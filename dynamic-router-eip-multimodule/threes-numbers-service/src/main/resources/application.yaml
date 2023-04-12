@@ -38,4 +38,6 @@ number-generator:
   subscribe-uri: "pulsar:persistent://public/default/control"
   consume-uri: "pulsar:persistent://public/default/numbers/threes-numbers"
   command-uri: "pulsar:persistent://public/default/numbers/command"
+  predicate: "{request.headers.command == 'processNumber' and request.headers.number % 3 == 0}"
+  expression-language: "spel"
   subscription-priority: 8

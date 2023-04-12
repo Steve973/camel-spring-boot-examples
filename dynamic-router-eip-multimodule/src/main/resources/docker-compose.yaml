@@ -17,71 +17,7 @@
 version: "3.5"
 
 services:
-  zookeeper:
-    image: docker.io/apachepulsar/pulsar:2.11.0
-    container_name: zookeeper
-    hostname: zookeeper
-    restart: on-failure
-    networks:
-      - test_net
-    volumes:
-      - /tmp/pulsar/zookeeper:/pulsar/data/zookeeper
-    environment:
-      - metadataStoreUrl=zk:zookeeper:2181
-      - PULSAR_MEM=-Xms256m -Xmx256m -XX:MaxDirectMemorySize=256m
-    command: >
-      bash -c "bin/apply-config-from-env.py conf/zookeeper.conf && \
-             bin/generate-zookeeper-config.sh conf/zookeeper.conf && \
-             exec bin/pulsar zookeeper"
-    healthcheck:
-      test: [ "CMD", "bin/pulsar-zookeeper-ruok.sh" ]
-      interval: 10s
-      timeout: 5s
-      retries: 30
 
-  # Init cluster metadata
-  pulsar-init:
-    container_name: pulsar-init
-    hostname: pulsar-init
-    image: docker.io/apachepulsar/pulsar:2.11.0
-    networks:
-      - test_net
-    command: >
-      bin/pulsar initialize-cluster-metadata \
-               --cluster cluster-a \
-               --zookeeper zookeeper:2181 \
-               --configuration-store zookeeper:2181 \
-               --web-service-url http://broker:8080 \
-               --broker-service-url pulsar://broker:6650
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-
-  # Start bookie
-  bookie:
-    image: docker.io/apachepulsar/pulsar:2.11.0
-    container_name: bookie
-    hostname: bookie
-    restart: on-failure
-    networks:
-      - test_net
-    environment:
-      - clusterName=cluster-a
-      - zkServers=zookeeper:2181
-      - metadataServiceUri=metadata-store:zk:zookeeper:2181
-      - advertisedAddress=bookie
-      - BOOKIE_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-      pulsar-init:
-        condition: service_completed_successfully
-    # Map the local directory to the container to avoid bookie startup failure due to insufficient container disks.
-    volumes:
-      - /tmp/pulsar/bookkeeper:/pulsar/data/bookkeeper
-    command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie"
-
-  # Start broker
   broker:
     image: docker.io/apachepulsar/pulsar:2.11.0
     container_name: broker
@@ -89,43 +25,13 @@ services:
     restart: on-failure
     networks:
       - test_net
-    environment:
-      - metadataStoreUrl=zk:zookeeper:2181
-      - zookeeperServers=zookeeper:2181
-      - clusterName=cluster-a
-      - managedLedgerDefaultEnsembleSize=1
-      - managedLedgerDefaultWriteQuorum=1
-      - managedLedgerDefaultAckQuorum=1
-      - advertisedAddress=broker
-      - advertisedListeners=external:pulsar://127.0.0.1:6650
-      - PULSAR_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-      bookie:
-        condition: service_started
     ports:
       - "6650:6650"
       - "8081:8080"
     volumes:
       - /tmp/pulsar/broker/data:/pulsar/data
     command:
-      bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
-
-  pulsar-manager:
-    image: docker.io/apachepulsar/pulsar-manager:v0.3.0
-    container_name: pulsar-manager
-    hostname: pulsar-manager
-    ports:
-      - "9527:9527"
-      - "7750:7750"
-    depends_on:
-      broker:
-        condition: service_healthy
-    environment:
-      SPRING_CONFIGURATION_FILE: /pulsar-manager/pulsar-manager/application.properties
-    networks:
-      - test_net
+      bash -c "bin/pulsar standalone"
 
   main-router:
     image: docker.io/library/main-router:latest
@@ -139,7 +45,7 @@ services:
       traefik.http.routers.main-router-router.service: main-router
       traefik.http.services.main-router.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/main-router/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/main-router/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -162,7 +68,7 @@ services:
       traefik.http.routers.number-generator-router.service: number-generator
       traefik.http.services.number-generator.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/number-generator/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/number-generator/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -187,7 +93,7 @@ services:
       traefik.http.routers.tens-numbers-router.service: tens-numbers
       traefik.http.services.tens-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/tens-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/tens-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -212,7 +118,7 @@ services:
       traefik.http.routers.nines-numbers-router.service: nines-numbers
       traefik.http.services.nines-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/nines-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/nines-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -237,7 +143,7 @@ services:
       traefik.http.routers.eights-numbers-router.service: eights-numbers
       traefik.http.services.eights-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/eights-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/eights-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -262,7 +168,7 @@ services:
       traefik.http.routers.sevens-numbers-router.service: sevens-numbers
       traefik.http.services.sevens-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/sevens-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/sevens-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -287,7 +193,7 @@ services:
       traefik.http.routers.sixes-numbers-router.service: sixes-numbers
       traefik.http.services.sixes-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/sixes-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/sixes-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -312,7 +218,7 @@ services:
       traefik.http.routers.fives-numbers-router.service: fives-numbers
       traefik.http.services.fives-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/fives-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/fives-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -337,7 +243,7 @@ services:
       traefik.http.routers.fours-numbers-router.service: fours-numbers
       traefik.http.services.fours-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/fours-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/fours-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -362,7 +268,7 @@ services:
       traefik.http.routers.threes-numbers-router.service: threes-numbers
       traefik.http.services.threes-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/threes-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/threes-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -387,7 +293,7 @@ services:
       traefik.http.routers.even-numbers-router.service: even-numbers
       traefik.http.services.even-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/even-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/even-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -412,7 +318,7 @@ services:
       traefik.http.routers.odd-numbers-router.service: odd-numbers
       traefik.http.services.odd-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/odd-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/odd-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -437,7 +343,7 @@ services:
       traefik.http.routers.prime-numbers-router.service: prime-numbers
       traefik.http.services.prime-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/prime-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/prime-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -462,7 +368,7 @@ services:
       traefik.http.routers.all-numbers-router.service: all-numbers
       traefik.http.services.all-numbers.loadbalancer.server.port: 8080
     healthcheck:
-      test: ["CMD", "curl", "http://localhost:8080/all-numbers/actuator/health/ping"]
+      test: [ "CMD", "curl", "http://localhost:8080/all-numbers/actuator/health/ping" ]
       interval: 30s
       timeout: 2s
       retries: 5
@@ -528,5 +434,6 @@ services:
         condition: service_healthy
     networks:
       - test_net
+
 networks:
-  test_net: {}
+  test_net: { }

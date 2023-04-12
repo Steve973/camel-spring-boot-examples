@@ -38,4 +38,6 @@ number-generator:
   subscribe-uri: "pulsar:persistent://public/default/control"
   consume-uri: "pulsar:persistent://public/default/numbers/generate"
   command-uri: "pulsar:persistent://public/default/numbers/command"
+  predicate: "{request.headers.command == 'generateNumbers'}"
+  expression-language: "spel"
   subscription-priority: 10
