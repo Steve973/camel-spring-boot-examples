@@ -18,45 +18,32 @@
 package org.apache.camel.example.springboot.numbers.gen.service;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.apache.camel.Consume;
-import org.apache.camel.Exchange;
-import org.apache.camel.ProducerTemplate;
-import org.apache.camel.builder.ExchangeBuilder;
+import org.apache.camel.*;
+import org.apache.camel.component.kafka.KafkaConstants;
 import org.apache.camel.example.springboot.numbers.common.model.CommandMessage;
 import org.apache.camel.example.springboot.numbers.common.service.RoutingParticipant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.ParallelFlux;
+import reactor.core.scheduler.Schedulers;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.IntStream;
 
 import static org.apache.camel.example.springboot.numbers.common.model.MessageTypes.PROCESS_NUMBER_COMMAND;
 
 @Service
 public class GenerateNumbersRoutingParticipant extends RoutingParticipant {
 
-    private static final String PARAM_TYPE = "type";
-
-    private static final String PARAM_TYPE_SEQUENTIAL = "sequential";
-
-    private static final String PARAM_TYPE_RANDOM = "random";
-
-    private static final String PARAM_TYPE_STOP = "stop";
-
-    private static final String PARAM_TYPE_START = "start";
+    protected static final Logger LOG = LoggerFactory.getLogger(GenerateNumbersRoutingParticipant.class);
 
     private static final String PARAM_TYPE_LIMIT = "limit";
 
-    /**
-     * Flag so that subsequent commands can be used to halt number messages.
-     */
-    private final AtomicBoolean runFlag = new AtomicBoolean(false);
-
-    /**
-     * Instance for generating random numbers.
-     */
-    private final Random random = new Random();
+    private final CommandMessage.Builder commandBuilder;
 
     public GenerateNumbersRoutingParticipant(
             @Value("${number-generator.subscribe-uri}") String subscribeUri,
@@ -64,11 +51,12 @@ public class GenerateNumbersRoutingParticipant extends RoutingParticipant {
             @Value("${number-generator.predicate}") String predicate,
             @Value("${number-generator.expression-language}") String expressionLanguage,
             @Value("${number-generator.subscription-priority}") int subscriptionPriority,
-            @Value("${number-generator.generate-numbers-consume-uri}") String consumeUri,
+            @Value("${number-generator.consume-uri}") String consumeUri,
             @Value("${number-generator.command-uri}") String commandUri,
             ProducerTemplate producerTemplate) {
         super("generateNumbers", subscribeUri, routingChannel, subscriptionPriority,
                 predicate, expressionLanguage, consumeUri, commandUri, producerTemplate);
+        this.commandBuilder = CommandMessage.newBuilder().setCommand(PROCESS_NUMBER_COMMAND);
     }
 
     /**
@@ -76,23 +64,33 @@ public class GenerateNumbersRoutingParticipant extends RoutingParticipant {
      * and have been routed to the participant.  It adds the results to the
      * results service.
      *
-     * @param bytes the serialized command message
+     * @param body the serialized command message
      */
     @Override
     @Consume(property = "consumeUri")
-    public void consumeMessage(final byte[] bytes) throws InvalidProtocolBufferException {
-        CommandMessage message = CommandMessage.parseFrom(bytes);
+    public void consumeMessage(final byte[] body) throws InvalidProtocolBufferException {
+        CommandMessage message = CommandMessage.parseFrom(body);
         Map<String, String> params = message.getParamsMap();
-        String type = params.getOrDefault(PARAM_TYPE, PARAM_TYPE_SEQUENTIAL);
-        int start = Integer.parseInt(params.getOrDefault(PARAM_TYPE_START, "0"));
         int limit = Integer.parseInt(params.getOrDefault(PARAM_TYPE_LIMIT, "0"));
-        switch (type) {
-            case PARAM_TYPE_SEQUENTIAL, PARAM_TYPE_RANDOM -> {
-                this.runFlag.set(true);
-                generateNumbers(type, start, limit);
-            }
-            case PARAM_TYPE_STOP -> this.runFlag.set(false);
-        }
+        generateNumbers(limit);
+    }
+
+    private String sendNumberMessage(int n) {
+        String number = String.valueOf(n);
+        producerTemplate.send(commandUri, exchange -> {
+            Message in = exchange.getIn();
+            in.setHeaders(
+                    new HashMap<>() {{
+                        put(KafkaConstants.KEY, "numbers");
+                        put("command", PROCESS_NUMBER_COMMAND);
+                        put("number", number);
+                    }});
+            in.setBody(
+                    commandBuilder.putParams("number", number)
+                            .build()
+                            .toByteArray());
+        });
+        return number;
     }
 
     /**
@@ -101,26 +99,23 @@ public class GenerateNumbersRoutingParticipant extends RoutingParticipant {
      * only stop when a limit (if any) is reached, or if a subsequent command instructs
      * number message generation to stop
      *
-     * @param type  type of numbers to create (sequential or random)
-     * @param start the number to start with (when in sequential mode)
      * @param limit the count of numbers to produce (zero means Integer.MAX_VALUE)
      */
-    protected void generateNumbers(String type, int start, int limit) {
-        int current = start;
-        int remaining = limit == 0 ? Integer.MAX_VALUE : limit;
-        while (this.runFlag.get() && remaining > 0) {
-            remaining--;
-            int number = PARAM_TYPE_SEQUENTIAL.equals(type) ? current++ : random.nextInt(0, Integer.MAX_VALUE);
-            CommandMessage processNumberCommand = CommandMessage.newBuilder()
-                    .setCommand(PROCESS_NUMBER_COMMAND)
-                    .putParams("number", String.valueOf(number))
-                    .build();
-            Exchange exchange = ExchangeBuilder.anExchange(producerTemplate.getCamelContext())
-                    .withHeader("command", PROCESS_NUMBER_COMMAND)
-                    .withHeader("number", number)
-                    .withBody(processNumberCommand.toByteArray())
-                    .build();
-            producerTemplate.asyncSend(commandUri, exchange);
+    protected void generateNumbers(int limit) {
+        try {
+            producerTemplate.start();
+            LOG.info("Generating numbers from 1 to {}", limit);
+            long begin = System.currentTimeMillis();
+            Flux.fromStream(IntStream.rangeClosed(1, limit).boxed())
+                    .parallel(32, 64)
+                    .runOn(Schedulers.boundedElastic())
+                    .map(this::sendNumberMessage)
+                    .sequential()
+                    .then()
+                    .block();
+            LOG.info("Generated numbers in {}s", (System.currentTimeMillis() - begin) / 1000);
+        } catch (Exception e) {
+            LOG.warn("########## Exception when trying to send number messages", e);
         }
     }
 }

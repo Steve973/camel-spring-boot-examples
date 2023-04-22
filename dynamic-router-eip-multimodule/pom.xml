@@ -34,6 +34,7 @@
     <module>numbers-common</module>
     <module>main-router</module>
     <module>number-generator-service</module>
+    <module>number-statistics-service</module>
     <module>all-numbers-service</module>
     <module>even-numbers-service</module>
     <module>odd-numbers-service</module>
@@ -91,11 +92,15 @@
     </dependency>
     <dependency>
       <groupId>org.apache.camel.springboot</groupId>
+      <artifactId>camel-spring-starter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.camel.springboot</groupId>
       <artifactId>camel-dynamic-router-starter</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-pulsar-starter</artifactId>
+      <artifactId>camel-kafka-starter</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.camel.springboot</groupId>
@@ -127,11 +132,24 @@
         <plugin>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
-          <configuration>
+          <version>${spring-boot-version}</version>
+          <configuration combine.children="append">
+            <image>
+              <name>docker.io/library/${project.artifactId}</name>
+              <env>
+                <BPE_DELIM_JAVA_TOOL_OPTIONS xml:space="preserve"> </BPE_DELIM_JAVA_TOOL_OPTIONS>
+                <BPE_APPEND_JAVA_TOOL_OPTIONS>--add-opens=java.base/sun.net=ALL-UNNAMED</BPE_APPEND_JAVA_TOOL_OPTIONS>
+                <BP_HEALTH_CHECKER_ENABLED>true</BP_HEALTH_CHECKER_ENABLED>
+              </env>
+              <buildpacks>
+                <buildpack>urn:cnb:builder:paketo-buildpacks/java</buildpack>
+                <buildpack>gcr.io/paketo-buildpacks/health-checker:latest</buildpack>
+              </buildpacks>
+            </image>
             <layers>
               <enabled>true</enabled>
             </layers>
-            <jvmArguments>--add-opens java.base/sun.net=ALL-UNNAMED</jvmArguments>
+            <jvmArguments>--add-opens=java.base/sun.net=ALL-UNNAMED</jvmArguments>
           </configuration>
         </plugin>
         <plugin>

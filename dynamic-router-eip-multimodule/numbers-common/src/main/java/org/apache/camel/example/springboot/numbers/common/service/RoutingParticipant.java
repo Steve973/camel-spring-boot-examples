@@ -19,7 +19,6 @@ package org.apache.camel.example.springboot.numbers.common.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.apache.camel.Consume;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.component.dynamicrouter.DynamicRouterControlMessage;
 import org.apache.camel.example.springboot.numbers.common.model.ControlMessage;
@@ -117,10 +116,9 @@ public abstract class RoutingParticipant {
      * and have been routed to the participant.  It adds the results to the
      * results service.
      *
-     * @param bytes the serialized command message
+     * @param body the serialized command message
      */
-    @Consume(property = "consumeUri")
-    public abstract void consumeMessage(final byte[] bytes) throws InvalidProtocolBufferException;
+    public abstract void consumeMessage(final byte[] body) throws InvalidProtocolBufferException;
 
     /**
      * Create a {@link DynamicRouterControlMessage} based on parameters from the
@@ -140,5 +138,14 @@ public abstract class RoutingParticipant {
                 .setConsumeUri(consumeUri)
                 .setCommandUri(commandUri)
                 .build();
+    }
+
+    /**
+     * Gets the consumer URI.
+     *
+     * @return the consumer URI
+     */
+    public String getConsumeUri() {
+        return this.consumeUri;
     }
 }

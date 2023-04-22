@@ -78,8 +78,7 @@ Number of Examples: 49 (0 deprecated)
 
 | link:dynamic-router-eip/README.adoc[Dynamic Router Eip] (dynamic-router-eip) | EIP | An example on how to use the Dynamic Router EIP component in Spring Boot
 
-| link:dynamic-router-eip-multimodule/readme.md[Dynamic Router Eip Multimodule] (dynamic-router-eip-multimodule) | EIP | An example on how to use the Dynamic Router EIP component in Spring Boot with multiple modules
-  
+| link:dynamic-router-eip-multimodule/readme.md[Dynamic Router Eip Multimodule] (dynamic-router-eip-multimodule) | EIP | Dynamic Router EIP component example in Spring Boot with multiple modules
 
 | link:load-balancer-eip/README.adoc[Load Balancer Eip] (load-balancer-eip) | EIP | An example showing Load Balancer EIP with Camel and Spring Boot
 

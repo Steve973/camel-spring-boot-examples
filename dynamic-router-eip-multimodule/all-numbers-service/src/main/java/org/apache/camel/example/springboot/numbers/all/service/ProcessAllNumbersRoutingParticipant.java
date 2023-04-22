@@ -36,5 +36,6 @@ public class ProcessAllNumbersRoutingParticipant extends ProcessNumbersRoutingPa
             ProducerTemplate producerTemplate) {
         super("all", "processAllNumbers", subscribeUri, routingChannel, subscriptionPriority,
                 predicate, expressionLanguage, consumeUri, commandUri, producerTemplate);
+
     }
 }

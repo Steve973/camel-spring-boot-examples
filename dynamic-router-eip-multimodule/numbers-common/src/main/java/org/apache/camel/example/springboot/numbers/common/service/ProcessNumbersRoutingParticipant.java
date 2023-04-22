@@ -20,9 +20,8 @@ package org.apache.camel.example.springboot.numbers.common.service;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.camel.Consume;
 import org.apache.camel.ProducerTemplate;
+import org.apache.camel.component.kafka.KafkaConstants;
 import org.apache.camel.example.springboot.numbers.common.model.CommandMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.Map;
@@ -32,8 +31,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.apache.camel.example.springboot.numbers.common.model.MessageTypes.STATS_COMMAND;
 
 public abstract class ProcessNumbersRoutingParticipant extends RoutingParticipant {
-
-    protected static final Logger LOG = LoggerFactory.getLogger(ProcessNumbersRoutingParticipant.class);
 
     protected final String numberName;
 
@@ -65,32 +62,30 @@ public abstract class ProcessNumbersRoutingParticipant extends RoutingParticipan
 
     /**
      * This method consumes messages that have matched the participant's rules
-     * and have been routed to the participant.  It adds the results to the
-     * results service.
+     * and have been routed to the participant.
      *
-     * @param bytes the serialized command message
+     * @param body the serialized command message
      */
+    @Override
     @Consume(property = "consumeUri")
-    public void consumeMessage(final byte[] bytes) throws InvalidProtocolBufferException {
-        CommandMessage message = CommandMessage.parseFrom(bytes);
-        Map<String, String> params = message.getParamsMap();
-        if (params.containsKey("number")) {
-            int number = Integer.parseInt(params.get("number"));
-            int count = processedCount.incrementAndGet();
-            LOG.info("Processed {} number: {}, total processed: {}", numberName, number, count);
-        }
+    public void consumeMessage(final byte[] body) throws InvalidProtocolBufferException {
+        processedCount.incrementAndGet();
     }
 
     @Scheduled(fixedRate = 2, timeUnit = TimeUnit.SECONDS)
-    private void sendStats() {
+    public void sendStats() {
         int pCount = processedCount.get();
         int rCount = reportedCount.get();
         if (pCount != rCount) {
             CommandMessage command = CommandMessage.newBuilder()
                     .setCommand(STATS_COMMAND)
-                    .putParams(numberName, String.valueOf(pCount)).build();
-            producerTemplate.sendBody(commandUri, command.toByteArray());
-            reportedCount.set(rCount);
+                    .putParams(numberName, String.valueOf(pCount))
+                    .build();
+            Map<String, Object> headers = Map.of(
+                    KafkaConstants.KEY, "numbers",
+                    "command", STATS_COMMAND);
+            producerTemplate.sendBodyAndHeaders(commandUri, command.toByteArray(), headers);
+            reportedCount.set(pCount);
         }
     }
 }

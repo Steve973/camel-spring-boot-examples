@@ -18,8 +18,10 @@ package org.apache.camel.example.springboot.numbers.all;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
+@EnableScheduling
+@SpringBootApplication(scanBasePackages = "org.apache.camel.example.springboot.numbers")
 public class Application {
 
     /**

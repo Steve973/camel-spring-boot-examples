@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.function.Function;
 
 @Service
 public class ProcessPrimeNumbersRoutingParticipant extends ProcessNumbersRoutingParticipant {
@@ -44,38 +45,37 @@ public class ProcessPrimeNumbersRoutingParticipant extends ProcessNumbersRouting
     }
 
     /**
-     * Determine if the given number is prime.
-     *
-     * @param n is a number that has been pre-evaluated to be odd and >= 3
-     * @return true if prime, otherwise false
+     * Evaluates if the given number is prime.  Before calling this function,
+     * ensure that the applied number is odd and greater than 3.
      */
-    private boolean evaluatePrime(int n) {
+    public static final Function<Integer, Boolean> evaluatePrime = n -> {
+        // only some odd numbers might be prime
         int max = (int) Math.sqrt(n) + 1;
         for (int i = 3; i < max; i += 2) {
-            if (n % i == 0)
+            if (n % i == 0) {
                 return false;
+            }
         }
         return true;
-    }
+    };
 
     /**
      * This method consumes messages that have matched the participant's rules
      * and have been routed to the participant.  It adds the results to the
      * results service.
      *
-     * @param bytes the serialized command message
+     * @param body the serialized command message
      */
     @Override
     @Consume(property = "consumeUri")
-    public void consumeMessage(final byte[] bytes) throws InvalidProtocolBufferException {
-        CommandMessage message = CommandMessage.parseFrom(bytes);
+    public void consumeMessage(final byte[] body) throws InvalidProtocolBufferException {
+        CommandMessage message = CommandMessage.parseFrom(body);
         Map<String, String> params = message.getParamsMap();
-        if (params.containsKey("number")) {
-            int number = Integer.parseInt(params.get("number"));
-            if ( number == 2 || evaluatePrime(number)) {
-                int count = processedCount.incrementAndGet();
-                LOG.info("Processed {} number: {}, total processed: {}", numberName, number, count);
-            }
+        int n = Integer.parseInt(params.getOrDefault("number", "0"));
+        if (n > 3 && n % 2 != 0 && evaluatePrime.apply(n)) {
+            processedCount.incrementAndGet();
+        } else if (n == 2 || n == 3) {
+            processedCount.incrementAndGet();
         }
     }
 }

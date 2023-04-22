@@ -18,6 +18,7 @@ package org.apache.camel.example.springboot.numbers.mainrouter.config;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Predicate;
+import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.dynamicrouter.DynamicRouterControlMessage;
 import org.apache.camel.example.springboot.numbers.common.model.ControlMessage;
@@ -41,7 +42,7 @@ public class DynamicRouterComponentConfig {
     protected static final Logger LOG = LoggerFactory.getLogger(DynamicRouterComponentConfig.class);
 
     /**
-     * Holds the config properties.
+     * Holds the config exchange.properties.
      */
     private final MainRouterConfig mainRouterConfig;
 
@@ -68,13 +69,34 @@ public class DynamicRouterComponentConfig {
      */
     @Bean
     RouteBuilder numbersRouter() {
-        return new RouteBuilder() {
+        return new RouteBuilder(camelContext) {
             @Override
             public void configure() {
                 from(mainRouterConfig.commandEntrypoint())
-                        .to("%s:%s?recipientMode=%s".formatted(
-                                COMPONENT_SCHEME, mainRouterConfig.routingChannel(), mainRouterConfig.recipientMode()));
+//                        .to("log:command_endpoint?showHeaders=true&showBody=true&multiline=true")
+                        .to(COMPONENT_SCHEME + ":" + mainRouterConfig.routingChannel() +
+                                "?recipientMode=" + mainRouterConfig.recipientMode());
             }
+        };
+    }
+
+    @Bean
+    Processor predicateProcessor() {
+        return exchange -> {
+            ControlMessage cm = exchange.getIn().getBody(ControlMessage.class);
+            String exLang = cm.getExpressionLanguage();
+            String expression = "#" + cm.getPredicate();
+            Language language = camelContext.resolveLanguage(exLang);
+            Predicate predicate = language.createPredicate(expression);
+            DynamicRouterControlMessage message = new DynamicRouterControlMessage.SubscribeMessageBuilder()
+                    .id(cm.getSubscriberId())
+                    .channel(cm.getRoutingChannel())
+                    .endpointUri(cm.getConsumeUri())
+                    .predicate(predicate)
+                    .priority(cm.getSubscriptionPriority())
+                    .build();
+            exchange.getIn().setBody(message);
+            LOG.info("\n##########\nProcessed subscription for ID: {}\n##########", cm.getSubscriberId());
         };
     }
 
@@ -83,27 +105,13 @@ public class DynamicRouterComponentConfig {
      * subscribe or unsubscribe.
      */
     @Bean
-    RouteBuilder subscriptionRouter() {
-        return new RouteBuilder() {
+    RouteBuilder subscriptionRouter(Processor predicateProcessor) {
+        return new RouteBuilder(camelContext) {
             @Override
             public void configure() {
                 from(mainRouterConfig.controlEntrypoint())
                         .unmarshal().protobuf(ControlMessage.getDefaultInstance())
-                        .process(exchange -> {
-                            ControlMessage cm = exchange.getIn().getBody(ControlMessage.class);
-                            String exLang = cm.getExpressionLanguage();
-                            String expression = "#" + cm.getPredicate();
-                            Language language = camelContext.resolveLanguage(exLang);
-                            Predicate predicate = language.createPredicate(expression);
-                            DynamicRouterControlMessage message = new DynamicRouterControlMessage.SubscribeMessageBuilder()
-                                    .id(cm.getSubscriberId())
-                                    .channel(cm.getRoutingChannel())
-                                    .endpointUri(cm.getConsumeUri())
-                                    .predicate(predicate)
-                                    .priority(cm.getSubscriptionPriority())
-                                    .build();
-                            exchange.getIn().setBody(message);
-                        })
+                        .process(predicateProcessor)
                         .to("dynamic-router:control");
             }
         };

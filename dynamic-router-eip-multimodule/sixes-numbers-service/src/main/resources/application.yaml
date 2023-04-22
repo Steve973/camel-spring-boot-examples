@@ -20,6 +20,7 @@ spring:
 server:
   servlet:
     context-path: "/sixes-numbers"
+  port: 8906
 management:
   endpoints:
     enabled-by-default: false
@@ -31,13 +32,15 @@ management:
       enabled: true
 camel:
   component:
-    pulsar:
-      service-url: "http://broker:8080"
+    kafka:
+      brokers: "broker:9092"
+      bridge-error-handler: true
+      group-id: "numbers"
 number-generator:
   routing-channel: "numbers"
-  subscribe-uri: "pulsar:persistent://public/default/control"
-  consume-uri: "pulsar:persistent://public/default/numbers/sixes-numbers"
-  command-uri: "pulsar:persistent://public/default/numbers/command"
-  predicate: "{request.headers.command == 'processNumber' and request.headers.number % 6 == 0}"
+  subscribe-uri: "kafka://control?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
+  consume-uri: "kafka://numbers_sixes?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
+  command-uri: "kafka://numbers_command?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
+  predicate: "{headers.command == 'processNumber' and new Integer(headers.number) % 6 == 0}"
   expression-language: "spel"
   subscription-priority: 5

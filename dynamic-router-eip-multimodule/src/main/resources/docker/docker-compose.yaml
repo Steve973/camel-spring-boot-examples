@@ -1,0 +1,330 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+version: "3.5"
+
+services:
+  broker:
+    image: docker.io/apachepulsar/pulsar:2.11.0
+    container_name: broker
+    hostname: broker
+    restart: on-failure
+    volumes:
+      - /tmp/pulsar/broker/data:/pulsar/data
+    command:
+      bash -c "bin/pulsar standalone"
+    ports:
+      - "8080:8080"
+      - "6650:6650"
+    healthcheck:
+      test: [ "CMD", "bin/pulsar-admin", "brokers", "healthcheck" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  main-router:
+    image: docker.io/library/main-router:latest
+    container_name: main-router
+    hostname: main-router
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+    ports:
+      - "8082:8082"
+    environment:
+      - THC_PATH=/main-router/actuator/health
+      - THC_PORT=8082
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  number-generator-service:
+    image: docker.io/library/number-generator-service:latest
+    container_name: number-generator-service
+    hostname: number-generator-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/number-generator/actuator/health
+      - THC_PORT=8912
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  all-numbers-service:
+    image: docker.io/library/all-numbers-service:latest
+    container_name: all-numbers-service
+    hostname: all-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/all-numbers/actuator/health
+      - THC_PORT=8911
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  prime-numbers-service:
+    image: docker.io/library/prime-numbers-service:latest
+    container_name: prime-numbers-service
+    hostname: prime-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/prime-numbers/actuator/health
+      - THC_PORT=8923
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  tens-numbers-service:
+    image: docker.io/library/tens-numbers-service:latest
+    container_name: tens-numbers-service
+    hostname: tens-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/tens-numbers/actuator/health
+      - THC_PORT=8910
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  nines-numbers-service:
+    image: docker.io/library/nines-numbers-service:latest
+    container_name: nines-numbers-service
+    hostname: nines-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/nines-numbers/actuator/health
+      - THC_PORT=8909
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  eights-numbers-service:
+    image: docker.io/library/eights-numbers-service:latest
+    container_name: eights-numbers-service
+    hostname: eights-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/eights-numbers/actuator/health
+      - THC_PORT=8908
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  sevens-numbers-service:
+    image: docker.io/library/sevens-numbers-service:latest
+    container_name: sevens-numbers-service
+    hostname: sevens-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/sevens-numbers/actuator/health
+      - THC_PORT=8907
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  sixes-numbers-service:
+    image: docker.io/library/sixes-numbers-service:latest
+    container_name: sixes-numbers-service
+    hostname: sixes-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/sixes-numbers/actuator/health
+      - THC_PORT=8906
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  fives-numbers-service:
+    image: docker.io/library/fives-numbers-service:latest
+    container_name: fives-numbers-service
+    hostname: fives-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/fives-numbers/actuator/health
+      - THC_PORT=8905
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  fours-numbers-service:
+    image: docker.io/library/fours-numbers-service:latest
+    container_name: fours-numbers-service
+    hostname: fours-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/fours-numbers/actuator/health
+      - THC_PORT=8904
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  threes-numbers-service:
+    image: docker.io/library/threes-numbers-service:latest
+    container_name: threes-numbers-service
+    hostname: threes-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/threes-numbers/actuator/health
+      - THC_PORT=8903
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  even-numbers-service:
+    image: docker.io/library/even-numbers-service:latest
+    container_name: even-numbers-service
+    hostname: even-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/even-numbers/actuator/health
+      - THC_PORT=8902
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  odd-numbers-service:
+    image: docker.io/library/odd-numbers-service:latest
+    container_name: odd-numbers-service
+    hostname: odd-numbers-service
+    depends_on:
+      broker:
+        condition: service_healthy
+        restart: true
+      main-router:
+        condition: service_healthy
+        restart: true
+    environment:
+      - THC_PATH=/odd-numbers/actuator/health
+      - THC_PORT=8901
+    healthcheck:
+      test: [ "CMD", "/cnb/process/health-check" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s

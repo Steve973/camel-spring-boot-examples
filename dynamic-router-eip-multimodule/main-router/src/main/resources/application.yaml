@@ -20,7 +20,7 @@ spring:
 server:
   servlet:
     context-path: "/main-router"
-  port: 8888
+  port: 8082
 management:
   endpoints:
     enabled-by-default: false
@@ -36,8 +36,10 @@ camel:
     jmx-enabled: false
     shutdown-timeout: 30
   component:
-    pulsar:
-      service-url: "http://localhost:8081"
+    kafka:
+      brokers: "broker:9092"
+      bridge-error-handler: true
+      group-id: "numbers"
     dynamic-router:
       enabled: true
       lazy-start-producer: true
@@ -45,12 +47,7 @@ camel:
 main-router:
   dynamic-router-component:
     routing-channel: "numbers"
-    control-entrypoint: "pulsar:persistent://public/default/control"
-    command-entrypoint: "pulsar:persistent://public/default/numbers/command"
+    control-entrypoint: "kafka://control?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
+    command-entrypoint: "kafka://numbers_command?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
     recipient-mode: "allMatch"
-  stats-subscriber:
-    consume-uri: "pulsar:persistent://public/default/numbers/stats"
-    subscription-priority: 7
-    predicate: "{request.headers.command == 'stats'}"
-    expression-language: "spel"
 

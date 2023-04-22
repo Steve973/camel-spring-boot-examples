@@ -19,7 +19,7 @@ package org.apache.camel.example.springboot.numbers.fives;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "org.apache.camel.example.springboot.numbers")
 public class Application {
 
     /**
