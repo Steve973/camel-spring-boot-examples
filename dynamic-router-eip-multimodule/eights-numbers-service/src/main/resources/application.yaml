@@ -14,33 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-spring:
-  application:
-    name: "eights-numbers-service"
-server:
-  servlet:
-    context-path: "/eights-numbers"
+app:
+  name: "eights-numbers"
   port: 8908
-management:
-  endpoints:
-    enabled-by-default: false
-    web:
-      exposure:
-        include: "health"
-  endpoint:
-    health:
-      enabled: true
-camel:
-  component:
-    kafka:
-      brokers: "broker:9092"
-      bridge-error-handler: true
-      group-id: "numbers"
-number-generator:
-  routing-channel: "numbers"
-  subscribe-uri: "kafka://control?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  consume-uri: "kafka://numbers_eights?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  command-uri: "kafka://numbers_command?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  predicate: "{headers.command == 'processNumber' and new Integer(headers.number) % 8 == 0}"
-  expression-language: "spel"
-  subscription-priority: 3
+  id: "numbers_eights"
+  predicate: "{headers.command == 'processNumber' and (new Integer(headers.number) % 8 == 0)}"
+  priority: 3

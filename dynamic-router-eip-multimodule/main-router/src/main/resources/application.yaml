@@ -14,32 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-spring:
-  application:
-    name: "main-router"
-server:
-  servlet:
-    context-path: "/main-router"
+app:
+  name: "main-router"
   port: 8082
-management:
-  endpoints:
-    enabled-by-default: false
-    web:
-      exposure:
-        include: "health"
-  endpoint:
-    health:
-      enabled: true
 camel:
   springboot:
     name: CamelSpringBootDynamicRouterExampleMainRouter
     jmx-enabled: false
     shutdown-timeout: 30
   component:
-    kafka:
-      brokers: "broker:9092"
-      bridge-error-handler: true
-      group-id: "numbers"
     dynamic-router:
       enabled: true
       lazy-start-producer: true
@@ -47,7 +30,7 @@ camel:
 main-router:
   dynamic-router-component:
     routing-channel: "numbers"
-    control-entrypoint: "kafka://control?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-    command-entrypoint: "kafka://numbers_command?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
+    control-entrypoint: "kafka://control"
+    command-entrypoint: "kafka://numbers_command"
     recipient-mode: "allMatch"
 

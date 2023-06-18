@@ -16,15 +16,20 @@
 #   limitations under the License.
 #
 
+check_service_healthy() {
+  local service_name="${1}"
+  podman ps --format "{{.Names}} {{.Status}}" --filter name="${service_name}" | grep -q "healthy"
+}
+
 wait_for_service() {
   local service_name="${1}"
-  echo "Waiting for service '${service_name}' (max 120s)"
   local count=120
-  until podman ps --format "{{.Names}} {{.Status}}" --filter name="${service_name}" | grep -q "healthy" && [[ count -gt 0 ]]
+  while ! check_service_healthy "${service_name}" && [[ count -gt 0 ]]
   do
+    printf "\r\033[KWaiting for service '${service_name}' [%3d]" $((count--))
     sleep 1
-    ((count--))
   done
+  echo
 }
 
 zookeeper() {
@@ -44,8 +49,8 @@ zookeeper() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
-    docker.io/confluentinc/cp-zookeeper:7.3.3
+    --health-start-period 30s \
+    docker.io/confluentinc/cp-zookeeper:7.4.0
 
   wait_for_service "zookeeper_service"
 }
@@ -55,7 +60,9 @@ kafka() {
     --name broker \
     --hostname broker \
     --infra-name broker_infra \
-    --publish 9092:9092 \
+    --publish "29092:29092" \
+    --publish "9092:9092" \
+    --publish "9101:9101" \
     --network test_net \
     --replace
 
@@ -64,47 +71,25 @@ kafka() {
     --pod broker \
     --env KAFKA_BROKER_ID=1 \
     --env KAFKA_ZOOKEEPER_CONNECT='zookeeper:2181' \
-    --env KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT \
-    --env KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://broker:9092,PLAINTEXT_INTERNAL://broker:29092 \
+    --env KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT \
+    --env KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://broker:29092,PLAINTEXT_HOST://broker:9092 \
     --env KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
     --env KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
     --env KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
+    --env KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
+    --env KAFKA_JMX_PORT=9101 \
+    --env KAFKA_JMX_HOSTNAME=localhost \
     --health-cmd '[ "kafka-topics", "--bootstrap-server", "broker:9092", "--list" ]' \
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
-    docker.io/confluentinc/cp-kafka:7.3.3
+    --health-start-period 30s \
+    docker.io/confluentinc/cp-kafka:7.4.0
 
     wait_for_service "kafka_broker"
 }
 
-pulsar() {
-  podman pod create \
-    --name broker \
-    --hostname broker \
-    --infra-name broker_infra \
-    --publish 8080:8080 \
-    --publish 6650:6650 \
-    --network test_net \
-    --replace
-
-  podman run -d \
-    --name pulsar_broker \
-    --pod broker \
-    --volume /tmp/pulsar/broker/data:/pulsar/data:Z \
-    --health-cmd '[ "bin/pulsar-admin", "brokers", "healthcheck" ]' \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 5 \
-    --health-start-period 120s \
-    docker.io/apachepulsar/pulsar:2.11.0 \
-    bin/pulsar standalone
-
-    wait_for_service "pulsar_broker"
-}
-
-main-router() {
+main_router() {
   podman pod create \
     --name main_router \
     --hostname main_router \
@@ -122,13 +107,13 @@ main-router() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/main-router:latest
 
     wait_for_service "main_router_service"
 }
 
-number-statistics-service() {
+number_statistics_service() {
   podman pod create \
     --name number_statistics \
     --hostname number_statistics \
@@ -146,11 +131,11 @@ number-statistics-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/number-statistics-service:latest
 }
 
-number-generator-service() {
+number_generator_service() {
   podman pod create \
     --name number_generator \
     --hostname number_generator \
@@ -168,11 +153,11 @@ number-generator-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/number-generator-service:latest
 }
 
-all-numbers-service() {
+all_numbers_service() {
   podman pod create \
     --name all_numbers \
     --hostname all_numbers \
@@ -190,11 +175,11 @@ all-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/all-numbers-service:latest
 }
 
-prime-numbers-service() {
+prime_numbers_service() {
   podman pod create \
     --name prime_numbers \
     --hostname prime_numbers \
@@ -212,11 +197,11 @@ prime-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/prime-numbers-service:latest
 }
 
-tens-numbers-service() {
+tens_numbers_service() {
   podman pod create \
     --name tens_numbers \
     --hostname tens_numbers \
@@ -234,11 +219,11 @@ tens-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/tens-numbers-service:latest
 }
 
-nines-numbers-service() {
+nines_numbers_service() {
   podman pod create \
     --name nines_numbers \
     --hostname nines_numbers \
@@ -256,11 +241,11 @@ nines-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/nines-numbers-service:latest
 }
 
-eights-numbers-service() {
+eights_numbers_service() {
   podman pod create \
     --name eights_numbers \
     --hostname eights_numbers \
@@ -278,11 +263,11 @@ eights-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/eights-numbers-service:latest
 }
 
-sevens-numbers-service() {
+sevens_numbers_service() {
   podman pod create \
     --name sevens_numbers \
     --hostname sevens_numbers \
@@ -300,11 +285,11 @@ sevens-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/sevens-numbers-service:latest
 }
 
-sixes-numbers-service() {
+sixes_numbers_service() {
   podman pod create \
     --name sixes_numbers \
     --hostname sixes_numbers \
@@ -322,11 +307,11 @@ sixes-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/sixes-numbers-service:latest
 }
 
-fives-numbers-service() {
+fives_numbers_service() {
   podman pod create \
     --name fives_numbers \
     --hostname fives_numbers \
@@ -344,11 +329,11 @@ fives-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/fives-numbers-service:latest
 }
 
-fours-numbers-service() {
+fours_numbers_service() {
   podman pod create \
     --name fours_numbers \
     --hostname fours_numbers \
@@ -366,11 +351,11 @@ fours-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/fours-numbers-service:latest
 }
 
-threes-numbers-service() {
+threes_numbers_service() {
   podman pod create \
     --name threes_numbers \
     --hostname threes_numbers \
@@ -388,11 +373,11 @@ threes-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/threes-numbers-service:latest
 }
 
-even-numbers-service() {
+even_numbers_service() {
   podman pod create \
     --name even_numbers \
     --hostname even_numbers \
@@ -410,11 +395,11 @@ even-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/even-numbers-service:latest
 }
 
-odd-numbers-service() {
+odd_numbers_service() {
   podman pod create \
     --name odd_numbers \
     --hostname odd_numbers \
@@ -432,36 +417,31 @@ odd-numbers-service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 120s \
+    --health-start-period 30s \
     docker.io/library/odd-numbers-service:latest
 }
 
 start_services() {
   zookeeper
   kafka
-  main-router
-  number-statistics-service
-  number-generator-service
-  all-numbers-service
-  prime-numbers-service
-  tens-numbers-service
-  nines-numbers-service
-  eights-numbers-service
-  sevens-numbers-service
-  sixes-numbers-service
-  fives-numbers-service
-  fours-numbers-service
-  threes-numbers-service
-  even-numbers-service
-  odd-numbers-service
+  main_router
+  number_statistics_service
+  number_generator_service
+  all_numbers_service
+  prime_numbers_service
+  tens_numbers_service
+  nines_numbers_service
+  eights_numbers_service
+  sevens_numbers_service
+  sixes_numbers_service
+  fives_numbers_service
+  fours_numbers_service
+  threes_numbers_service
+  even_numbers_service
+  odd_numbers_service
 }
 
 prepare_resources() {
-  podman unshare rm -rf /tmp/pulsar
-  mkdir -p /tmp/pulsar/broker/data
-  mkdir -p /tmp/pulsar/zookeeper
-  mkdir -p /tmp/pulsar/bookkeeper
-  chmod -R 777 /tmp/pulsar
   podman network create test_net --ignore
 }
 

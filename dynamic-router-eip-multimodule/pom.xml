@@ -165,6 +165,24 @@
             </execution>
           </executions>
         </plugin>
+        <plugin>
+          <groupId>com.google.cloud.tools</groupId>
+          <artifactId>jib-maven-plugin</artifactId>
+          <version>3.3.2</version>
+          <configuration>
+            <from>
+              <image>gcr.io/distroless/java17</image>
+            </from>
+            <to>
+              <image>docker.io/library/${project.artifactId}:${project.version}</image>
+            </to>
+            <container>
+              <jvmFlags>
+                <jvmFlag>--add-opens=java.base/sun.net=ALL-UNNAMED</jvmFlag>
+              </jvmFlags>
+            </container>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
@@ -185,32 +203,6 @@
             </executions>
             <configuration>
               <docker>
-                <host>unix:///var/run/docker.sock</host>
-                <bindHostToBuilder>true</bindHostToBuilder>
-              </docker>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>podman</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <version>${spring-boot-version}</version>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>build-image-no-fork</goal>
-                </goals>
-              </execution>
-            </executions>
-            <configuration>
-              <docker>
-                <host>unix://${env.XDG_RUNTIME_DIR}/podman/podman.sock</host>
                 <bindHostToBuilder>true</bindHostToBuilder>
               </docker>
             </configuration>

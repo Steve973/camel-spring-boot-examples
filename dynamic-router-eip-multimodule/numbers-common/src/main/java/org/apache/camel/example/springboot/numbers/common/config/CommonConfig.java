@@ -21,10 +21,16 @@ import org.apache.camel.component.kafka.serde.KafkaHeaderDeserializer;
 import org.apache.camel.example.springboot.numbers.common.service.StringValueHeaderDeserializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.PropertySources;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
 @Configuration
+@PropertySources({
+        @PropertySource(value = "classpath:application.yaml", factory = YamlPropertySourceFactory.class),
+        @PropertySource(value = "classpath:common.yaml", factory = YamlPropertySourceFactory.class)
+})
 public class CommonConfig {
 
     @Bean

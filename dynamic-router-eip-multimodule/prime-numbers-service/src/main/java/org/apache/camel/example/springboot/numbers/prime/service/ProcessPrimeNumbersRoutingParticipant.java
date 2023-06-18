@@ -17,15 +17,13 @@
 
 package org.apache.camel.example.springboot.numbers.prime.service;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.camel.Consume;
+import org.apache.camel.Header;
 import org.apache.camel.ProducerTemplate;
-import org.apache.camel.example.springboot.numbers.common.model.CommandMessage;
 import org.apache.camel.example.springboot.numbers.common.service.ProcessNumbersRoutingParticipant;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
 import java.util.function.Function;
 
 @Service
@@ -68,10 +66,8 @@ public class ProcessPrimeNumbersRoutingParticipant extends ProcessNumbersRouting
      */
     @Override
     @Consume(property = "consumeUri")
-    public void consumeMessage(final byte[] body) throws InvalidProtocolBufferException {
-        CommandMessage message = CommandMessage.parseFrom(body);
-        Map<String, String> params = message.getParamsMap();
-        int n = Integer.parseInt(params.getOrDefault("number", "0"));
+    public void consumeMessage(final byte[] body, @Header(value = "number") String number) {
+        int n = Integer.parseInt(number == null ? "0" : number);
         if (n > 3 && n % 2 != 0 && evaluatePrime.apply(n)) {
             processedCount.incrementAndGet();
         } else if (n == 2 || n == 3) {

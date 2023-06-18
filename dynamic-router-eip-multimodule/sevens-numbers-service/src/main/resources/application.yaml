@@ -14,33 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-spring:
-  application:
-    name: "sevens-numbers-service"
-server:
-  servlet:
-    context-path: "/sevens-numbers"
+app:
+  name: "sevens-numbers"
   port: 8907
-management:
-  endpoints:
-    enabled-by-default: false
-    web:
-      exposure:
-        include: "health"
-  endpoint:
-    health:
-      enabled: true
-camel:
-  component:
-    kafka:
-      brokers: "broker:9092"
-      bridge-error-handler: true
-      group-id: "numbers"
-number-generator:
-  routing-channel: "numbers"
-  subscribe-uri: "kafka://control?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  consume-uri: "kafka://numbers_sevens?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  command-uri: "kafka://numbers_command?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  predicate: "{headers.command == 'processNumber' and new Integer(headers.number) % 7 == 0}"
-  expression-language: "spel"
-  subscription-priority: 4
+  id: "numbers_sevens"
+  predicate: "{headers.command == 'processNumber' and (new Integer(headers.number) % 7 == 0)}"
+  priority: 4

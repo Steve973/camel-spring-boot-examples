@@ -17,14 +17,13 @@
 
 package org.apache.camel.example.springboot.numbers.common.service;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.camel.Consume;
+import org.apache.camel.Header;
 import org.apache.camel.ProducerTemplate;
-import org.apache.camel.component.kafka.KafkaConstants;
+import org.apache.camel.builder.ExchangeBuilder;
 import org.apache.camel.example.springboot.numbers.common.model.CommandMessage;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -68,23 +67,23 @@ public abstract class ProcessNumbersRoutingParticipant extends RoutingParticipan
      */
     @Override
     @Consume(property = "consumeUri")
-    public void consumeMessage(final byte[] body) throws InvalidProtocolBufferException {
+    public void consumeMessage(final byte[] body, @Header(value = "number") String number) {
         processedCount.incrementAndGet();
     }
 
     @Scheduled(fixedRate = 2, timeUnit = TimeUnit.SECONDS)
     public void sendStats() {
         int pCount = processedCount.get();
-        int rCount = reportedCount.get();
-        if (pCount != rCount) {
+        if (pCount != reportedCount.get()) {
             CommandMessage command = CommandMessage.newBuilder()
                     .setCommand(STATS_COMMAND)
                     .putParams(numberName, String.valueOf(pCount))
                     .build();
-            Map<String, Object> headers = Map.of(
-                    KafkaConstants.KEY, "numbers",
-                    "command", STATS_COMMAND);
-            producerTemplate.sendBodyAndHeaders(commandUri, command.toByteArray(), headers);
+            producerTemplate.send(
+                    commandUri, ExchangeBuilder.anExchange(producerTemplate.getCamelContext())
+                            .withHeader("command", STATS_COMMAND)
+                            .withBody(command.toByteArray())
+                            .build());
             reportedCount.set(pCount);
         }
     }

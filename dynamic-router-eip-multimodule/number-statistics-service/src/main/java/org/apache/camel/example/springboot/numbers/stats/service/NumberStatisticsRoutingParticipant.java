@@ -19,11 +19,10 @@ package org.apache.camel.example.springboot.numbers.stats.service;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.camel.Consume;
+import org.apache.camel.Header;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.example.springboot.numbers.common.model.CommandMessage;
 import org.apache.camel.example.springboot.numbers.common.service.RoutingParticipant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -32,8 +31,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class NumberStatisticsRoutingParticipant extends RoutingParticipant {
-
-    protected static final Logger LOG = LoggerFactory.getLogger(NumberStatisticsRoutingParticipant.class);
 
     private final Map<String, Long> countsMap;
 
@@ -64,8 +61,9 @@ public class NumberStatisticsRoutingParticipant extends RoutingParticipant {
      */
     @Override
     @Consume(property = "consumeUri")
-    public void consumeMessage(final byte[] body) throws InvalidProtocolBufferException {
+    public void consumeMessage(final byte[] body, @Header(value = "number") String number) throws InvalidProtocolBufferException {
         CommandMessage message = CommandMessage.parseFrom(body);
-        message.getParamsMap().forEach((key, val) -> countsMap.merge(key, Long.valueOf(val), Math::max));
+        message.getParamsMap().forEach((key, val) ->
+                countsMap.merge(key, Long.parseLong(val), Math::max));
     }
 }

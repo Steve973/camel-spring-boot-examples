@@ -14,33 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-spring:
-  application:
-    name: "prime-numbers-service"
-server:
-  servlet:
-    context-path: "/prime-numbers"
+app:
+  name: "prime-numbers"
   port: 8923
-management:
-  endpoints:
-    enabled-by-default: false
-    web:
-      exposure:
-        include: "health"
-  endpoint:
-    health:
-      enabled: true
-camel:
-  component:
-    kafka:
-      brokers: "broker:9092"
-      bridge-error-handler: true
-      group-id: "numbers"
-number-generator:
-  routing-channel: "numbers"
-  subscribe-uri: "kafka://control?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  consume-uri: "kafka://numbers_prime?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  command-uri: "kafka://numbers_command?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
+  id: "numbers_prime"
   predicate: "{headers.command == 'processNumber' and ((new Integer(headers.number) == 2) or (new Integer(headers.number) % 2 != 0))}"
-  expression-language: "spel"
-  subscription-priority: 10
+  priority: 10

@@ -14,33 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-spring:
-  application:
-    name: "number-generator"
-server:
-  servlet:
-    context-path: "/number-generator"
+app:
+  name: "number-generator"
   port: 8912
-management:
-  endpoints:
-    enabled-by-default: false
-    web:
-      exposure:
-        include: "health"
-  endpoint:
-    health:
-      enabled: true
-camel:
-  component:
-    kafka:
-      brokers: "broker:9092"
-      bridge-error-handler: true
-      group-id: "numbers"
-number-generator:
-  routing-channel: "numbers"
-  subscribe-uri: "kafka://control?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  consume-uri: "kafka://numbers_generate?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  command-uri: "kafka://numbers_command?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
+  id: "numbers_generate"
   predicate: "{headers.command == 'generateNumbers'}"
-  expression-language: "spel"
-  subscription-priority: 10
+  priority: 10

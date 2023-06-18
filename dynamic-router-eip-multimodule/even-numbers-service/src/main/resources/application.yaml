@@ -14,33 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-spring:
-  application:
-    name: "even-numbers-service"
-server:
-  servlet:
-    context-path: "/even-numbers"
+app:
+  name: "even-numbers"
   port: 8902
-management:
-  endpoints:
-    enabled-by-default: false
-    web:
-      exposure:
-        include: "health"
-  endpoint:
-    health:
-      enabled: true
-camel:
-  component:
-    kafka:
-      brokers: "broker:9092"
-      bridge-error-handler: true
-      group-id: "numbers"
-number-generator:
-  routing-channel: "numbers"
-  subscribe-uri: "kafka://control?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  consume-uri: "kafka://numbers_even?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  command-uri: "kafka://numbers_command?brokers=broker:9092&headerDeserializer=#stringValueHeaderDeserializer"
-  predicate: "{headers.command == 'processNumber' and new Integer(headers.number) % 2 == 0}"
-  expression-language: "spel"
-  subscription-priority: 45
+  id: "numbers_even"
+  predicate: "{headers.command == 'processNumber' and (new Integer(headers.number) % 2 == 0)}"
+  priority: 45

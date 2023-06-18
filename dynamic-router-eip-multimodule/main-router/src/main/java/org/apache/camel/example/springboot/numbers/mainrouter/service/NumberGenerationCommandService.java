@@ -18,12 +18,10 @@
 package org.apache.camel.example.springboot.numbers.mainrouter.service;
 
 import org.apache.camel.ProducerTemplate;
-import org.apache.camel.component.kafka.KafkaConstants;
+import org.apache.camel.builder.ExchangeBuilder;
 import org.apache.camel.example.springboot.numbers.common.model.CommandMessage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import java.util.Map;
 
 import static org.apache.camel.example.springboot.numbers.common.model.MessageTypes.GENERATE_NUMBERS_COMMAND;
 
@@ -49,10 +47,11 @@ public class NumberGenerationCommandService {
                 .setCommand(GENERATE_NUMBERS_COMMAND)
                 .putParams("limit", limit)
                 .build();
-        Map<String, Object> headers = Map.of(
-                KafkaConstants.KEY, "numbers",
-                "command", GENERATE_NUMBERS_COMMAND);
-        producerTemplate.sendBodyAndHeaders(commandUri, generateNumbersCommandMessage.toByteArray(), headers);
+        producerTemplate.send(
+                commandUri, ExchangeBuilder.anExchange(producerTemplate.getCamelContext())
+                        .withHeader("command", GENERATE_NUMBERS_COMMAND)
+                        .withBody(generateNumbersCommandMessage.toByteArray())
+                        .build());
         return "{\"status\": \"generate numbers command sent\"}";
     }
 }

@@ -19,6 +19,7 @@ package org.apache.camel.example.springboot.numbers.common.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.protobuf.InvalidProtocolBufferException;
+import org.apache.camel.Header;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.component.dynamicrouter.DynamicRouterControlMessage;
 import org.apache.camel.example.springboot.numbers.common.model.ControlMessage;
@@ -118,7 +119,7 @@ public abstract class RoutingParticipant {
      *
      * @param body the serialized command message
      */
-    public abstract void consumeMessage(final byte[] body) throws InvalidProtocolBufferException;
+    public abstract void consumeMessage(final byte[] body, @Header(value = "number") String number) throws InvalidProtocolBufferException;
 
     /**
      * Create a {@link DynamicRouterControlMessage} based on parameters from the
