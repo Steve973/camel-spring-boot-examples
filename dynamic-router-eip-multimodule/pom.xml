@@ -38,15 +38,6 @@
     <module>all-numbers-service</module>
     <module>even-numbers-service</module>
     <module>odd-numbers-service</module>
-    <module>threes-numbers-service</module>
-    <module>fours-numbers-service</module>
-    <module>fives-numbers-service</module>
-    <module>sixes-numbers-service</module>
-    <module>sevens-numbers-service</module>
-    <module>eights-numbers-service</module>
-    <module>nines-numbers-service</module>
-    <module>tens-numbers-service</module>
-    <module>prime-numbers-service</module>
   </modules>
 
   <properties>
@@ -105,15 +96,6 @@
     <dependency>
       <groupId>org.apache.camel.springboot</groupId>
       <artifactId>camel-jackson-starter</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.camel.springboot</groupId>
-      <artifactId>camel-protobuf-starter</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java</artifactId>
-      <version>3.21.10</version>
     </dependency>
     <dependency>
       <groupId>jakarta.validation</groupId>

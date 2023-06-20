@@ -17,14 +17,15 @@
 
 package org.apache.camel.example.springboot.numbers.common.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.protobuf.InvalidProtocolBufferException;
+import org.apache.camel.CamelContext;
 import org.apache.camel.Header;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.component.dynamicrouter.DynamicRouterControlMessage;
 import org.apache.camel.example.springboot.numbers.common.model.ControlMessage;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+
+import java.io.IOException;
 
 public abstract class RoutingParticipant {
 
@@ -75,6 +76,8 @@ public abstract class RoutingParticipant {
      */
     protected final ProducerTemplate producerTemplate;
 
+    protected final CamelContext camelContext;
+
     public RoutingParticipant(
             String subscriberId,
             String subscribeUri,
@@ -84,7 +87,8 @@ public abstract class RoutingParticipant {
             String expressionLanguage,
             String consumeUri,
             String commandUri,
-            ProducerTemplate producerTemplate) {
+            ProducerTemplate producerTemplate,
+            CamelContext camelContext) {
         this.subscriberId = subscriberId;
         this.subscribeUri = subscribeUri;
         this.routingChannel = routingChannel;
@@ -94,6 +98,7 @@ public abstract class RoutingParticipant {
         this.consumeUri = consumeUri;
         this.commandUri = commandUri;
         this.producerTemplate = producerTemplate;
+        this.camelContext = camelContext;
     }
 
     /**
@@ -101,14 +106,14 @@ public abstract class RoutingParticipant {
      */
     private void subscribe() {
         ControlMessage message = createSubscribeMessage();
-        producerTemplate.sendBody(subscribeUri, message.toByteArray());
+        producerTemplate.sendBody(subscribeUri, message.toString());
     }
 
     /**
      * After the application is started and ready, subscribe for messages.
      */
     @EventListener(ApplicationReadyEvent.class)
-    public void start() throws InterruptedException, JsonProcessingException {
+    public void start() {
         subscribe();
     }
 
@@ -119,7 +124,7 @@ public abstract class RoutingParticipant {
      *
      * @param body the serialized command message
      */
-    public abstract void consumeMessage(final byte[] body, @Header(value = "number") String number) throws InvalidProtocolBufferException;
+    public abstract void consumeMessage(final String body, @Header(value = "number") String number) throws IOException;
 
     /**
      * Create a {@link DynamicRouterControlMessage} based on parameters from the
@@ -128,17 +133,8 @@ public abstract class RoutingParticipant {
      * @return the {@link DynamicRouterControlMessage}
      */
     protected ControlMessage createSubscribeMessage() {
-        return ControlMessage.newBuilder()
-                .setAction("subscribe")
-                .setSubscriberId(subscriberId)
-                .setSubscribeUri(subscribeUri)
-                .setRoutingChannel(routingChannel)
-                .setSubscriptionPriority(priority)
-                .setPredicate(predicate)
-                .setExpressionLanguage(expressionLanguage)
-                .setConsumeUri(consumeUri)
-                .setCommandUri(commandUri)
-                .build();
+        return new ControlMessage("subscribe", subscriberId, subscribeUri, routingChannel, priority,
+                predicate, expressionLanguage, consumeUri, commandUri);
     }
 
     /**

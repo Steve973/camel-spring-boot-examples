@@ -18,5 +18,5 @@ app:
   name: "odd-numbers"
   port: 8901
   id: "numbers_odd"
-  predicate: "{headers.command == 'processNumber' and (new Integer(headers.number) % 2 != 0)}"
-  priority: 9
+  predicate: "{headers.command == 'processNumber' and headers.number matches '\\d*[13579]' }"
+  priority: 10

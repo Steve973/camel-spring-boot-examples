@@ -17,6 +17,7 @@
 
 package org.apache.camel.example.springboot.numbers.common.service;
 
+import org.apache.camel.CamelContext;
 import org.apache.camel.Consume;
 import org.apache.camel.Header;
 import org.apache.camel.ProducerTemplate;
@@ -24,6 +25,7 @@ import org.apache.camel.builder.ExchangeBuilder;
 import org.apache.camel.example.springboot.numbers.common.model.CommandMessage;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -53,9 +55,10 @@ public abstract class ProcessNumbersRoutingParticipant extends RoutingParticipan
             String expressionLanguage,
             String consumeUri,
             String commandUri,
-            ProducerTemplate producerTemplate) {
+            ProducerTemplate producerTemplate,
+            CamelContext camelContext) {
         super(subscriberId, subscribeUri, routingChannel, subscriptionPriority, predicate, expressionLanguage,
-                consumeUri, commandUri, producerTemplate);
+                consumeUri, commandUri, producerTemplate, camelContext);
         this.numberName = numberName;
     }
 
@@ -67,22 +70,19 @@ public abstract class ProcessNumbersRoutingParticipant extends RoutingParticipan
      */
     @Override
     @Consume(property = "consumeUri")
-    public void consumeMessage(final byte[] body, @Header(value = "number") String number) {
+    public void consumeMessage(final String body, @Header(value = "number") String number) {
         processedCount.incrementAndGet();
     }
 
     @Scheduled(fixedRate = 2, timeUnit = TimeUnit.SECONDS)
     public void sendStats() {
         int pCount = processedCount.get();
-        if (pCount != reportedCount.get()) {
-            CommandMessage command = CommandMessage.newBuilder()
-                    .setCommand(STATS_COMMAND)
-                    .putParams(numberName, String.valueOf(pCount))
-                    .build();
+        if (pCount > reportedCount.get()) {
+            CommandMessage command = new CommandMessage(STATS_COMMAND, Map.of(numberName, String.valueOf(pCount)));
             producerTemplate.send(
-                    commandUri, ExchangeBuilder.anExchange(producerTemplate.getCamelContext())
+                    commandUri, ExchangeBuilder.anExchange(camelContext)
                             .withHeader("command", STATS_COMMAND)
-                            .withBody(command.toByteArray())
+                            .withBody(command.toString())
                             .build());
             reportedCount.set(pCount);
         }

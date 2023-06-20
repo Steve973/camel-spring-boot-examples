@@ -35,17 +35,13 @@ camel:
     kafka:
       brokers: "broker:9092"
       bridge-error-handler: true
-      group-id: "numbers"
-      key: numbers
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  jmx:
+    disabled: true
 number-generator:
   routing-channel: "numbers"
-  subscribe-uri: "kafka://control"
-  command-uri: "kafka://numbers_command"
-  consume-uri: "kafka://${app.id}"
+  subscribe-uri: "kafka://control?groupId=${app.id}&groupInstanceId=${app.id}_subscribe&headerDeserializer=#stringValueHeaderDeserializer"
+  command-uri: "kafka://numbers_command?groupId=${app.id}&groupInstanceId=${app.id}_command&headerDeserializer=#stringValueHeaderDeserializer"
+  consume-uri: "kafka://${app.id}?groupId=${app.id}&groupInstanceId=${app.id}_consumer&headerDeserializer=#stringValueHeaderDeserializer"
   predicate: "${app.predicate}"
   expression-language: "spel"
   subscription-priority: ${app.priority}

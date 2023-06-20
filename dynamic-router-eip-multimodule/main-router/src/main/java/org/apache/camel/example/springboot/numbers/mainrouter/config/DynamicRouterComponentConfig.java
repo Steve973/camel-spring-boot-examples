@@ -25,6 +25,7 @@ import org.apache.camel.example.springboot.numbers.common.model.ControlMessage;
 import org.apache.camel.spi.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,6 +47,10 @@ public class DynamicRouterComponentConfig {
      */
     private final MainRouterConfig mainRouterConfig;
 
+    private final String commandUri;
+
+    private final String subscribeUri;
+
     /**
      * The Camel context.
      */
@@ -58,8 +63,12 @@ public class DynamicRouterComponentConfig {
      * @param camelContext the Camel context
      */
     public DynamicRouterComponentConfig(final MainRouterConfig mainRouterConfig,
+                                        @Value("${number-generator.command-uri}") String commandUri,
+                                        @Value("${number-generator.subscribe-uri}") String subscribeUri,
                                         final CamelContext camelContext) {
         this.mainRouterConfig = mainRouterConfig;
+        this.commandUri = commandUri;
+        this.subscribeUri = subscribeUri;
         this.camelContext = camelContext;
     }
 
@@ -72,10 +81,9 @@ public class DynamicRouterComponentConfig {
         return new RouteBuilder(camelContext) {
             @Override
             public void configure() {
-                from(mainRouterConfig.commandEntrypoint())
-//                        .to("log:command_endpoint?showHeaders=true&showBody=true&multiline=true")
+                from(commandUri)
                         .to(COMPONENT_SCHEME + ":" + mainRouterConfig.routingChannel() +
-                                "?recipientMode=" + mainRouterConfig.recipientMode());
+                                "?synchronous=true&recipientMode=" + mainRouterConfig.recipientMode());
             }
         };
     }
@@ -109,8 +117,8 @@ public class DynamicRouterComponentConfig {
         return new RouteBuilder(camelContext) {
             @Override
             public void configure() {
-                from(mainRouterConfig.controlEntrypoint())
-                        .unmarshal().protobuf(ControlMessage.getDefaultInstance())
+                from(subscribeUri)
+                        .unmarshal().json(ControlMessage.class)
                         .process(predicateProcessor)
                         .to("dynamic-router:control");
             }

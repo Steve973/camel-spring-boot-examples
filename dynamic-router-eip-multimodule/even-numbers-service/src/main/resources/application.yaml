@@ -18,5 +18,5 @@ app:
   name: "even-numbers"
   port: 8902
   id: "numbers_even"
-  predicate: "{headers.command == 'processNumber' and (new Integer(headers.number) % 2 == 0)}"
-  priority: 45
+  predicate: "{headers.command == 'processNumber' and headers.number matches '\\d*[02468]' }"
+  priority: 10

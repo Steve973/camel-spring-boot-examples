@@ -17,6 +17,7 @@
 
 package org.apache.camel.example.springboot.numbers.even.service;
 
+import org.apache.camel.CamelContext;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.example.springboot.numbers.common.service.ProcessNumbersRoutingParticipant;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,8 +34,9 @@ public class ProcessEvenNumbersRoutingParticipant extends ProcessNumbersRoutingP
             @Value("${number-generator.subscription-priority}") int subscriptionPriority,
             @Value("${number-generator.consume-uri}") String consumeUri,
             @Value("${number-generator.command-uri}") String commandUri,
-            ProducerTemplate producerTemplate) {
+            ProducerTemplate producerTemplate,
+            CamelContext camelContext) {
         super("even", "processEvenNumbers", subscribeUri, routingChannel, subscriptionPriority,
-                predicate, expressionLanguage, consumeUri, commandUri, producerTemplate);
+                predicate, expressionLanguage, consumeUri, commandUri, producerTemplate, camelContext);
     }
 }

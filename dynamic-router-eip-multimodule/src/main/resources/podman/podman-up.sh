@@ -23,36 +23,13 @@ check_service_healthy() {
 
 wait_for_service() {
   local service_name="${1}"
-  local count=120
+  local count=60
   while ! check_service_healthy "${service_name}" && [[ count -gt 0 ]]
   do
-    printf "\r\033[KWaiting for service '${service_name}' [%3d]" $((count--))
+    printf "\r\033[KWaiting for service '${service_name}' [%2d]" $((count--))
     sleep 1
   done
   echo
-}
-
-zookeeper() {
-  podman pod create \
-    --name zookeeper \
-    --hostname zookeeper \
-    --infra-name zookeeper_infra \
-    --network test_net \
-    --replace
-
-  podman run -d \
-    --name zookeeper_service \
-    --pod zookeeper \
-    --env ZOOKEEPER_CLIENT_PORT=2181 \
-    --env ZOOKEEPER_TICK_TIME=2000 \
-    --health-cmd '[ "nc", "-z", "localhost", "2181" ]' \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 5 \
-    --health-start-period 30s \
-    docker.io/confluentinc/cp-zookeeper:7.4.0
-
-  wait_for_service "zookeeper_service"
 }
 
 kafka() {
@@ -60,31 +37,29 @@ kafka() {
     --name broker \
     --hostname broker \
     --infra-name broker_infra \
-    --publish "29092:29092" \
-    --publish "9092:9092" \
-    --publish "9101:9101" \
     --network test_net \
     --replace
 
   podman run -d \
     --name kafka_broker \
     --pod broker \
-    --env KAFKA_BROKER_ID=1 \
-    --env KAFKA_ZOOKEEPER_CONNECT='zookeeper:2181' \
-    --env KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT \
-    --env KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://broker:29092,PLAINTEXT_HOST://broker:9092 \
-    --env KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-    --env KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
-    --env KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
-    --env KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
-    --env KAFKA_JMX_PORT=9101 \
-    --env KAFKA_JMX_HOSTNAME=localhost \
-    --health-cmd '[ "kafka-topics", "--bootstrap-server", "broker:9092", "--list" ]' \
+    --env KAFKA_ENABLE_KRAFT=yes \
+    --env KAFKA_CFG_NODE_ID=1 \
+    --env KAFKA_CFG_PROCESS_ROLES=broker,controller \
+    --env KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+    --env KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT \
+    --env KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT \
+    --env KAFKA_CFG_LISTENERS=PLAINTEXT://broker:9092,CONTROLLER://broker:9093 \
+    --env KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://broker:9092 \
+    --env KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@broker:9093 \
+    --env ALLOW_PLAINTEXT_LISTENER=yes \
+    --env KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true \
+    --health-cmd '[ "kafka-topics.sh", "--bootstrap-server", "broker:9092", "--list" ]' \
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 30s \
-    docker.io/confluentinc/cp-kafka:7.4.0
+    --health-start-period 10s \
+    docker.io/bitnami/kafka:3.4
 
     wait_for_service "kafka_broker"
 }
@@ -107,7 +82,7 @@ main_router() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 30s \
+    --health-start-period 10s \
     docker.io/library/main-router:latest
 
     wait_for_service "main_router_service"
@@ -131,7 +106,7 @@ number_statistics_service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 30s \
+    --health-start-period 10s \
     docker.io/library/number-statistics-service:latest
 }
 
@@ -153,7 +128,7 @@ number_generator_service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 30s \
+    --health-start-period 10s \
     docker.io/library/number-generator-service:latest
 }
 
@@ -175,206 +150,8 @@ all_numbers_service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 30s \
+    --health-start-period 10s \
     docker.io/library/all-numbers-service:latest
-}
-
-prime_numbers_service() {
-  podman pod create \
-    --name prime_numbers \
-    --hostname prime_numbers \
-    --infra-name prime_numbers_infra \
-    --publish 8923:8923 \
-    --network test_net \
-    --replace
-
-  podman run -d \
-    --name prime_numbers_service \
-    --pod prime_numbers \
-    --env THC_PATH=/prime-numbers/actuator/health \
-    --env THC_PORT=8923 \
-    --health-cmd '[ "/cnb/process/health-check" ]' \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 5 \
-    --health-start-period 30s \
-    docker.io/library/prime-numbers-service:latest
-}
-
-tens_numbers_service() {
-  podman pod create \
-    --name tens_numbers \
-    --hostname tens_numbers \
-    --infra-name tens_numbers_infra \
-    --publish 8910:8910 \
-    --network test_net \
-    --replace
-
-  podman run -d \
-    --name tens_numbers_service \
-    --pod tens_numbers \
-    --env THC_PATH=/tens-numbers/actuator/health \
-    --env THC_PORT=8910 \
-    --health-cmd '[ "/cnb/process/health-check" ]' \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 5 \
-    --health-start-period 30s \
-    docker.io/library/tens-numbers-service:latest
-}
-
-nines_numbers_service() {
-  podman pod create \
-    --name nines_numbers \
-    --hostname nines_numbers \
-    --infra-name nines_numbers_infra \
-    --publish 8909:8909 \
-    --network test_net \
-    --replace
-
-  podman run -d \
-    --name nines_numbers_service \
-    --pod nines_numbers \
-    --env THC_PATH=/nines-numbers/actuator/health \
-    --env THC_PORT=8909 \
-    --health-cmd '[ "/cnb/process/health-check" ]' \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 5 \
-    --health-start-period 30s \
-    docker.io/library/nines-numbers-service:latest
-}
-
-eights_numbers_service() {
-  podman pod create \
-    --name eights_numbers \
-    --hostname eights_numbers \
-    --infra-name eights_numbers_infra \
-    --publish 8908:8908 \
-    --network test_net \
-    --replace
-
-  podman run -d \
-    --name eights_numbers_service \
-    --pod eights_numbers \
-    --env THC_PATH=/eights-numbers/actuator/health \
-    --env THC_PORT=8908 \
-    --health-cmd '[ "/cnb/process/health-check" ]' \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 5 \
-    --health-start-period 30s \
-    docker.io/library/eights-numbers-service:latest
-}
-
-sevens_numbers_service() {
-  podman pod create \
-    --name sevens_numbers \
-    --hostname sevens_numbers \
-    --infra-name sevens_numbers_infra \
-    --publish 8907:8907 \
-    --network test_net \
-    --replace
-
-  podman run -d \
-    --name sevens_numbers_service \
-    --pod sevens_numbers \
-    --env THC_PATH=/sevens-numbers/actuator/health \
-    --env THC_PORT=8907 \
-    --health-cmd '[ "/cnb/process/health-check" ]' \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 5 \
-    --health-start-period 30s \
-    docker.io/library/sevens-numbers-service:latest
-}
-
-sixes_numbers_service() {
-  podman pod create \
-    --name sixes_numbers \
-    --hostname sixes_numbers \
-    --infra-name sixes_numbers_infra \
-    --publish 8906:8906 \
-    --network test_net \
-    --replace
-
-  podman run -d \
-    --name sixes_numbers_service \
-    --pod sixes_numbers \
-    --env THC_PATH=/sixes-numbers/actuator/health \
-    --env THC_PORT=8906 \
-    --health-cmd '[ "/cnb/process/health-check" ]' \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 5 \
-    --health-start-period 30s \
-    docker.io/library/sixes-numbers-service:latest
-}
-
-fives_numbers_service() {
-  podman pod create \
-    --name fives_numbers \
-    --hostname fives_numbers \
-    --infra-name fives_numbers_infra \
-    --publish 8905:8905 \
-    --network test_net \
-    --replace
-
-  podman run -d \
-    --name fives_numbers_service \
-    --pod fives_numbers \
-    --env THC_PATH=/fives-numbers/actuator/health \
-    --env THC_PORT=8905 \
-    --health-cmd '[ "/cnb/process/health-check" ]' \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 5 \
-    --health-start-period 30s \
-    docker.io/library/fives-numbers-service:latest
-}
-
-fours_numbers_service() {
-  podman pod create \
-    --name fours_numbers \
-    --hostname fours_numbers \
-    --infra-name fours_numbers_infra \
-    --publish 8904:8904 \
-    --network test_net \
-    --replace
-
-  podman run -d \
-    --name fours_numbers_service \
-    --pod fours_numbers \
-    --env THC_PATH=/fours-numbers/actuator/health \
-    --env THC_PORT=8904 \
-    --health-cmd '[ "/cnb/process/health-check" ]' \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 5 \
-    --health-start-period 30s \
-    docker.io/library/fours-numbers-service:latest
-}
-
-threes_numbers_service() {
-  podman pod create \
-    --name threes_numbers \
-    --hostname threes_numbers \
-    --infra-name threes_numbers_infra \
-    --publish 8903:8903 \
-    --network test_net \
-    --replace
-
-  podman run -d \
-    --name threes_numbers_service \
-    --pod threes_numbers \
-    --env THC_PATH=/threes-numbers/actuator/health \
-    --env THC_PORT=8903 \
-    --health-cmd '[ "/cnb/process/health-check" ]' \
-    --health-interval 30s \
-    --health-timeout 10s \
-    --health-retries 5 \
-    --health-start-period 30s \
-    docker.io/library/threes-numbers-service:latest
 }
 
 even_numbers_service() {
@@ -395,7 +172,7 @@ even_numbers_service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 30s \
+    --health-start-period 10s \
     docker.io/library/even-numbers-service:latest
 }
 
@@ -417,26 +194,16 @@ odd_numbers_service() {
     --health-interval 30s \
     --health-timeout 10s \
     --health-retries 5 \
-    --health-start-period 30s \
+    --health-start-period 10s \
     docker.io/library/odd-numbers-service:latest
 }
 
 start_services() {
-  zookeeper
   kafka
   main_router
   number_statistics_service
   number_generator_service
   all_numbers_service
-  prime_numbers_service
-  tens_numbers_service
-  nines_numbers_service
-  eights_numbers_service
-  sevens_numbers_service
-  sixes_numbers_service
-  fives_numbers_service
-  fours_numbers_service
-  threes_numbers_service
   even_numbers_service
   odd_numbers_service
 }

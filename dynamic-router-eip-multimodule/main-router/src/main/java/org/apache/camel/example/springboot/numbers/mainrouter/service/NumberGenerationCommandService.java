@@ -17,11 +17,14 @@
 
 package org.apache.camel.example.springboot.numbers.mainrouter.service;
 
+import org.apache.camel.CamelContext;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.ExchangeBuilder;
 import org.apache.camel.example.springboot.numbers.common.model.CommandMessage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
 
 import static org.apache.camel.example.springboot.numbers.common.model.MessageTypes.GENERATE_NUMBERS_COMMAND;
 
@@ -32,26 +35,28 @@ public class NumberGenerationCommandService {
 
     private final ProducerTemplate producerTemplate;
 
+    private final CamelContext camelContext;
+
     public NumberGenerationCommandService(
-            @Value("${main-router.dynamic-router-component.command-entrypoint}") String commandUri,
-            ProducerTemplate producerTemplate) {
+            @Value("${number-generator.command-uri}") String commandUri,
+            ProducerTemplate producerTemplate,
+            CamelContext camelContext) {
         this.commandUri = commandUri;
         this.producerTemplate = producerTemplate;
+        this.camelContext = camelContext;
     }
 
     /**
      * Send the generate numbers message with the boolean toggle value.
      */
     public String sendGenerateNumbersCommand(String limit) {
-        CommandMessage generateNumbersCommandMessage = CommandMessage.newBuilder()
-                .setCommand(GENERATE_NUMBERS_COMMAND)
-                .putParams("limit", limit)
-                .build();
+        CommandMessage generateNumbersCommandMessage =
+                new CommandMessage(GENERATE_NUMBERS_COMMAND, Map.of("limit", limit));
         producerTemplate.send(
-                commandUri, ExchangeBuilder.anExchange(producerTemplate.getCamelContext())
+                commandUri, ExchangeBuilder.anExchange(camelContext)
                         .withHeader("command", GENERATE_NUMBERS_COMMAND)
-                        .withBody(generateNumbersCommandMessage.toByteArray())
+                        .withBody(generateNumbersCommandMessage.toString())
                         .build());
-        return "{\"status\": \"generate numbers command sent\"}";
+        return generateNumbersCommandMessage.toString();
     }
 }

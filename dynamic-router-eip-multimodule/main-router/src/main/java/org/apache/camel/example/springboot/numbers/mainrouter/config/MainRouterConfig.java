@@ -24,15 +24,13 @@ import org.springframework.validation.annotation.Validated;
 
 /**
  * @param routingChannel    The dynamic router channel.
- * @param controlEntrypoint The dynamic router control channel URI
- * @param commandEntrypoint The URI where messages will be sent to be dynamically routed.
  * @param recipientMode     The recipient mode -- first matching filter only, or all matching filters.
  */
 @Validated
 @ConfigurationProperties(prefix = "main-router.dynamic-router-component")
 public record MainRouterConfig(
+
         @NotBlank String routingChannel,
-        @NotBlank String controlEntrypoint,
-        @NotBlank String commandEntrypoint,
+
         @NotBlank @Pattern(regexp = "^firstMatch|allMatch$") String recipientMode) {
 }

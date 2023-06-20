@@ -17,6 +17,7 @@
 app:
   name: "main-router"
   port: 8082
+  id: "main_router"
 camel:
   springboot:
     name: CamelSpringBootDynamicRouterExampleMainRouter
@@ -30,7 +31,5 @@ camel:
 main-router:
   dynamic-router-component:
     routing-channel: "numbers"
-    control-entrypoint: "kafka://control"
-    command-entrypoint: "kafka://numbers_command"
     recipient-mode: "allMatch"
 

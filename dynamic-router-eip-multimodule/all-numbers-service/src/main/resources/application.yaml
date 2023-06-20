@@ -18,5 +18,5 @@ app:
   name: "all-numbers"
   port: 8911
   id: "numbers_all"
-  predicate: "{headers.command == 'processNumber'}"
-  priority: 50
+  predicate: "{headers.command == 'processNumber' }"
+  priority: 5
